@@ -30,5 +30,8 @@ module.exports.handler = async function(event, context, callback, func) {
 
         callback(failResponse)
     }
-    
+}
+
+module.exports.isItemEmpty = function(item) {
+    return Object.keys(item).length === 0 && item.constructor === Object
 }

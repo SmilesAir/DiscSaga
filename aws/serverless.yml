@@ -1,14 +1,16 @@
 # serverless.yml
-service: StarterProject
+service: DiscSaga
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
   region: us-west-2
   stage: ${opt:stage, "development"}
 
   environment:
-    TEST_TABLE: ${self:provider.stage}-testTable
+    CHALLENGE_RESULTS_TABLE: ${self:provider.stage}-challengeResultsTable
+    USER_PROFILE_TABLE: ${self:provider.stage}-userProfileTable
+    CHALLENGE_SUBMIT_TABLE: ${self:provider.stage}-challengeSubmitTable
 
   iamRoleStatements:
     - Effect: Allow
@@ -18,28 +20,82 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TEST_TABLE}"
+        - dynamodb:Query
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CHALLENGE_RESULTS_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USER_PROFILE_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CHALLENGE_SUBMIT_TABLE}"
 
 functions:
-  testLambda:
-    handler: source/test.handler
+  getUserData:
+    handler: source/getUserData.handler
     events:
       - http:
-          path: handler
+          path: fbUserId/{fbUserId}/getUserData
+          method: get
+          cors: true
+  submitChallengeAttempt:
+    handler: source/submitChallengeAttempt.handler
+    events:
+      - http:
+          path: fbUserId/{fbUserId}/challengeId/{challengeId}/videoId/{videoId}/submitChallengeAttempt
           method: post
           cors: true
 
 resources:
   Resources:
-    testTable:
+    challengeResultsTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.environment.TEST_TABLE}
+        TableName: ${self:provider.environment.CHALLENGE_RESULTS_TABLE}
         AttributeDefinitions:
-          - AttributeName: key
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: challengeId
             AttributeType: S
         KeySchema:
-          - AttributeName: key
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: challengeId
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    userProfileTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USER_PROFILE_TABLE}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    challengeSubmitTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CHALLENGE_SUBMIT_TABLE}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1

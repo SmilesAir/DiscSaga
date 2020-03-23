@@ -1,12 +1,12 @@
 {
-    "name": "starterproject",
+    "name": "discsaga",
     "version": "v0.0.1",
-    "description": "Minimal Client",
-    "homepage": "https://github.com/SmilesAir/StarterProject",
+    "description": "Freestyle Frisbee Ladder Website",
+    "homepage": "https://github.com/SmilesAir/DiscSaga",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SmilesAir/StarterProject.git"
+        "url": "https://github.com/SmilesAir/DiscSaga.git"
     },
     "author": {
         "name": "Ryan Young",
@@ -15,6 +15,7 @@
     "main": "source/index.js",
     "scripts": {
         "start": "npm i && codeglue --mode=server --stage=development",
+        "startssl": "codeglue --mode=server --stage=development --ssl=true",
         "deploy": "aws s3 sync ./builds/web s3://starterproject-development"
     },
     "dependencies": {
@@ -22,7 +23,8 @@
         "mobx": "^5.1.2",
         "mobx-react": "^5.2.8",
         "react": "^16.5.2",
-        "react-dom": "^16.5.2"
+        "react-dom": "^16.5.2",
+        "react-facebook": "^8.1.4"
     },
     "devDependencies": {
         "@babel/plugin-proposal-decorators": "^7.1.6",

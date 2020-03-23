@@ -151,7 +151,7 @@ module.exports = exports = {
         "id-length": OFF,
         "indent": [ WARN, 4 ],
         "jsx-quotes": [ WARN, "prefer-double" ],
-        "linebreak-style": [ WARN, "windows" ],
+        "linebreak-style": OFF,
         "lines-around-comment": [ WARN, { "beforeBlockComment": true } ],
         "max-depth": [ WARN, 8 ],
         "max-len": [ OFF, 132 ],
