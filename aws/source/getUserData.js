@@ -12,51 +12,47 @@ module.exports.handler = (e, c, cb) => { Common.handler(e, c, cb, async (event, 
 
     let ret = {}
 
-    let getProfileParams = {
-        TableName: process.env.USER_PROFILE_TABLE,
-        Key: {
-            userId: userId
-        }
-    }
     let needQueryChallengeData = false
-    await docClient.get(getProfileParams).promise().then((profileData) => {
-        if (Common.isItemEmpty(profileData)) {
-            console.log("Creating profile for: " + userId)
+    let profileData = await Common.getProfileData(userId)
+    if (Common.isItemEmpty(profileData)) {
+        console.log("Creating profile for: " + userId)
 
-            ret.profileData = {
-                userId: userId,
-                createdAt: Date.now(),
-                lastAccessAt: Date.now()
-            }
-
-            let putProfileParams = {
-                TableName: process.env.USER_PROFILE_TABLE,
-                Item: ret.profileData
-            }
-            return docClient.put(putProfileParams).promise()
-        } else {
-            console.log("Found profile data: " + JSON.stringify(profileData))
-
-            needQueryChallengeData = true
-            ret.profileData = profileData
-            ret.profileData.lastAccessAt = Date.now()
-
-            let updateProfileParams = {
-                TableName: process.env.USER_PROFILE_TABLE,
-                Key:{
-                    userId: userId
-                },
-                UpdateExpression: "set lastAccessAt = :lastAccessAt",
-                ExpressionAttributeValues:{
-                    ":lastAccessAt": ret.profileData.lastAccessAt
-                },
-                ReturnValues: "NONE"
-            }
-            return docClient.update(updateProfileParams).promise()
+        ret.profileData = {
+            userId: userId,
+            createdAt: Date.now(),
+            lastAccessAt: Date.now(),
+            pendingSubmitKeys: []
         }
-    }).catch((error) => {
-        console.log(`Error creating/updating new profile for ${userId}. Error ${error}`)
-    })
+
+        let putProfileParams = {
+            TableName: process.env.USER_PROFILE_TABLE,
+            Item: ret.profileData
+        }
+        await docClient.put(putProfileParams).promise().catch((error) => {
+            console.log(`Error creating new profile for ${userId}. Error ${error}`)
+        })
+    } else {
+        console.log("Found profile data: " + JSON.stringify(profileData))
+
+        needQueryChallengeData = true
+        ret.profileData = profileData
+        ret.profileData.lastAccessAt = Date.now()
+
+        let updateProfileParams = {
+            TableName: process.env.USER_PROFILE_TABLE,
+            Key:{
+                userId: userId
+            },
+            UpdateExpression: "set lastAccessAt = :lastAccessAt",
+            ExpressionAttributeValues:{
+                ":lastAccessAt": ret.profileData.lastAccessAt
+            },
+            ReturnValues: "NONE"
+        }
+        await docClient.update(updateProfileParams).promise().catch((error) => {
+            console.log(`Error updating profile for ${userId}. Error ${error}`)
+        })
+    }
 
     if (needQueryChallengeData) {
         let challengeData = {}

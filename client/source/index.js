@@ -4,6 +4,7 @@ const React = require("react")
 const ReactDOM = require("react-dom")
 const MobxReact = require("mobx-react")
 import { FacebookProvider, LoginButton } from "react-facebook"
+const LadderView = require("./ladderView.js")
 
 require("./index.less")
 
@@ -20,6 +21,8 @@ require("./index.less")
         this.token = data.tokenDetail.accessToken
 
         getUserDataFromAws()
+
+        getChallengeAttemptsFromAws()
     }
 
     handleError(error) {
@@ -41,6 +44,8 @@ require("./index.less")
         const finishResp = await this.finish("Test Saga Upload Video")
 
         console.log("Finished upload", startResp, finishResp)
+
+        submitChallengeAttemptToAws("Gitis", startResp.video_id)
     }
 
     async startUpload(fileSize) {
@@ -129,23 +134,44 @@ require("./index.less")
         })
     }
 
+    async getSubmits() {
+        let attemptsData = await getChallengeAttemptsFromAws()
+        console.log("Attemp data: ", attemptsData)
+
+        if (attemptsData.submitData.length > 0) {
+            let data = attemptsData.submitData[0]
+            this.challengeUserId = data.userId
+            this.challengeTime = data.time
+            this.challengePass = true
+        }
+    }
+
+    review() {
+        reviewChallengeAttemptToAws(this.challengeUserId, this.challengeTime, this.challengePass)
+    }
+
     render() {
         return (
             <div>
-                <FacebookProvider appId="618459952333109">
-                    <LoginButton
-                        scope="email, publish_to_groups, publish_pages, publish_video, manage_pages, pages_show_list"
-                        onCompleted={(data) => this.handleResponse(data)}
-                        onError={(error) => this.handleError(error)}
-                    >
-                        <span>Login to Facebook</span>
-                    </LoginButton>
-                </FacebookProvider>
-                <button onClick={() => document.getElementById("file-input").click()}>Open</button>
-                <input id="file-input" type="file" name="name" style={{ display: "none" }} />
-                <button onClick={() => this.testUpload()}>
-                    Test Upload
-                </button>
+                <div>
+                    <FacebookProvider appId="618459952333109">
+                        <LoginButton
+                            scope="email, publish_to_groups, publish_pages, publish_video, manage_pages, pages_show_list"
+                            onCompleted={(data) => this.handleResponse(data)}
+                            onError={(error) => this.handleError(error)}
+                        >
+                            <span>Login to Facebook</span>
+                        </LoginButton>
+                    </FacebookProvider>
+                    <button onClick={() => document.getElementById("file-input").click()}>Open</button>
+                    <input id="file-input" type="file" name="name" style={{ display: "none" }} />
+                    <button onClick={() => this.testUpload()}>
+                        Test Upload
+                    </button>
+                    <button onClick={() => this.getSubmits()}>Get Submit List</button>
+                    <button onClick={() => this.review()}>Review</button>
+                </div>
+                <LadderView />
             </div>
         )
     }
@@ -169,8 +195,8 @@ function getUserDataFromAws() {
     })
 }
 
-function submitChallengeAttempt(videoId) {
-    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/videoId/${videoId}/submitChallengeAttempt`, {
+function submitChallengeAttemptToAws(challengeId, videoId) {
+    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/challengeId/${challengeId}/videoId/${videoId}/submitChallengeAttempt`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -179,6 +205,32 @@ function submitChallengeAttempt(videoId) {
         return response.json()
     }). then((data) => {
         console.log("reponse from aws", data)
+    })
+}
+
+function getChallengeAttemptsFromAws() {
+    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/getChallengeAttempts`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }).then((response) => {
+        return response.json()
+    }). then((data) => {
+        return data
+    })
+}
+
+function reviewChallengeAttemptToAws(challengeUserId, challengeTime, isPass) {
+    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/time/${challengeTime}/challengeUserId/${challengeUserId}/isPass/${isPass}/reviewChallengeAttempt`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }).then((response) => {
+        return response.json()
+    }). then((data) => {
+        console.log("review submit response from aws", data)
     })
 }
 

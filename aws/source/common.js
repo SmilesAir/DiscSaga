@@ -10,7 +10,7 @@ module.exports.handler = async function(event, context, callback, func) {
             statusCode: 200,
             headers: {
             "Access-Control-Allow-Origin" : "*", // Required for CORS support to work
-            "Access-Control-Allow-Credentials" : true // Required for cookies, authorization headers with HTTPS 
+            "Access-Control-Allow-Credentials" : true // Required for cookies, authorization headers with HTTPS
             },
             body: JSON.stringify(result)
         }
@@ -23,7 +23,7 @@ module.exports.handler = async function(event, context, callback, func) {
             statusCode: 500,
             headers: {
               "Access-Control-Allow-Origin" : "*", // Required for CORS support to work
-              "Access-Control-Allow-Credentials" : true // Required for cookies, authorization headers with HTTPS 
+              "Access-Control-Allow-Credentials" : true // Required for cookies, authorization headers with HTTPS
             },
             body: error
         }
@@ -33,5 +33,19 @@ module.exports.handler = async function(event, context, callback, func) {
 }
 
 module.exports.isItemEmpty = function(item) {
-    return Object.keys(item).length === 0 && item.constructor === Object
+    return item === undefined || (Object.keys(item).length === 0 && item.constructor === Object)
+}
+
+module.exports.getProfileData = function(userId) {
+    let getProfileParams = {
+        TableName: process.env.USER_PROFILE_TABLE,
+        Key: {
+            userId: userId
+        }
+    }
+    return docClient.get(getProfileParams).promise().then((data) => {
+        return data.Item
+    }).catch((error) => {
+        console.log(`Error getting profile for ${userId}. Error ${error}`)
+    })
 }

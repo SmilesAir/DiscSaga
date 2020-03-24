@@ -19,7 +19,6 @@ provider:
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
         - dynamodb:Query
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CHALLENGE_RESULTS_TABLE}"
     - Effect: Allow
@@ -28,7 +27,6 @@ provider:
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USER_PROFILE_TABLE}"
     - Effect: Allow
       Action:
@@ -37,6 +35,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:Query
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CHALLENGE_SUBMIT_TABLE}"
 
 functions:
@@ -52,6 +51,20 @@ functions:
     events:
       - http:
           path: fbUserId/{fbUserId}/challengeId/{challengeId}/videoId/{videoId}/submitChallengeAttempt
+          method: post
+          cors: true
+  getChallengeAttempts:
+    handler: source/getChallengeAttempts.handler
+    events:
+      - http:
+          path: fbUserId/{fbUserId}/getChallengeAttempts
+          method: get
+          cors: true
+  reviewChallengeAttempt:
+    handler: source/reviewChallengeAttempt.handler
+    events:
+      - http:
+          path: fbUserId/{fbUserId}/time/{time}/challengeUserId/{challengeUserId}/isPass/{isPass}/reviewChallengeAttempt
           method: post
           cors: true
 
@@ -92,11 +105,15 @@ resources:
       Properties:
         TableName: ${self:provider.environment.CHALLENGE_SUBMIT_TABLE}
         AttributeDefinitions:
+          - AttributeName: time
+            AttributeType: N
           - AttributeName: userId
             AttributeType: S
         KeySchema:
-          - AttributeName: userId
+          - AttributeName: time
             KeyType: HASH
+          - AttributeName: userId
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
