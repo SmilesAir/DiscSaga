@@ -16,7 +16,9 @@
     "scripts": {
         "start": "npm i && codeglue --mode=server --stage=development --ssl=true",
         "startssl": "codeglue --mode=server --stage=development --ssl=true",
-        "deploy": "aws s3 sync ./builds/web s3://starterproject-development"
+        "deploy": "aws s3 sync ./builds/web s3://discsaga-development",
+        "build:production": "codeglue --stage=production",
+        "deploy:production": "npm i && npm run build:production && aws s3 sync ./builds/web s3://discsaga-production"
     },
     "dependencies": {
         "aws-sdk": "2.316.0",

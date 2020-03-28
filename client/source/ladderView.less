@@ -1,23 +1,159 @@
 .ladderView {
     position: fixed;
-    right: 0;
+    left: 0;
 
-    width: 60%;
+    width: 100%;
     height: 100%;
-    background-color: lightblue;
     overflow: hidden;
 
     cursor: grab;
 
-    .ladderRungView {
+    .ladderScroll {
         position: absolute;
-        width: 100%;
-        height: 35%;
+        top: 0;
+        right: 0;
+        width: 60%;
+        height: 100%;
 
-        .rungImage {
+        .ladderRungView {
+            position: absolute;
+            width: 100%;
+            height: 35%;
+
+            .rungImage {
+                width: 100%;
+                height: 100%;
+                object-fit: fill;
+            }
+
+            .challengeListView {
+                position: absolute;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                top: 2%;
+                left: 10%;
+                width: 80%;
+                height: 90%;
+
+                .challengeButton {
+                    flex-grow: 1;
+                    border-radius: .5em;
+                }
+
+                .operator {
+                    text-align: center;
+                }
+            }
+        }
+    }
+
+    .rungDescription {
+        position: absolute;
+        font-weight: bold;
+        margin-bottom: -.2em;
+        margin-right: 5px;
+
+        right: 60%;
+    }
+
+    .markerView {
+        position: fixed;
+        left: 8%;
+        width: 15vh;
+        height: 15vh;
+
+        .markerImage {
             width: 100%;
             height: 100%;
-            object-fit: fill;
+        }
+    }
+
+    .challengeView {
+        position: fixed;
+        display: flex;
+        flex-direction: column;
+        top: 8%;
+        left: 5%;
+
+        width: 84%;
+        height: 84%;
+
+        border-radius: 2em;
+        padding: 3%;
+
+        background-color: rgba(200, 200, 200, .75);
+
+        .info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+
+            .title {
+                text-align: center;
+                font-size: 1.5em;
+                font-weight: bold;
+
+                border-radius: 2em;
+                background-color: rgba(255, 255, 255, .75);
+                padding: .5em;
+            }
+
+            .description {
+                text-align: center;
+
+                margin-top: .5em;
+                padding: 1em;
+
+                border-radius: 2em;
+                background-color: rgba(255, 255, 255, .75);
+            }
+
+            .example {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+
+                text-align: center;
+                margin-top: .5em;
+                width: 100%;
+
+                border-radius: 2em;
+                background-color: rgba(255, 255, 255, .75);
+            }
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+
+            margin-top: .5em;
+
+            .all {
+                height: 2em;
+                font-size: 2em;
+                font-weight: bold;
+                border-radius: 2em;
+            }
+
+            .submitButton {
+                .all;
+
+                margin-bottom: .15em;
+
+                color: green;
+            }
+
+            .submitButton:disabled {
+                color: gray;
+            }
+
+            .cancelButton {
+                .all;
+
+                color: salmon;
+            }
         }
     }
 }

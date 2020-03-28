@@ -6,13 +6,35 @@ const MobxReact = require("mobx-react")
 import { FacebookProvider, LoginButton } from "react-facebook"
 const LadderView = require("./ladderView.js")
 
+const MainStore = require("./mainStore.js")
+
 require("./index.less")
 
 @MobxReact.observer class Main extends React.Component {
     constructor() {
         super()
 
-        getLadderMoveList().then((data) => console.log(data))
+        let urlParams = {}
+        window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, (m, key, value) => {
+            urlParams[key] = value
+        })
+
+        if (urlParams.facebookTest === "true") {
+            this.facebookTest = true
+            this.token = "EAAIyfG3EQTUBAFvZCcwTpAz2qlB36qRKBTBGMdiEMPivgqnhWTnpmSNEbtD4lo4aZA6csNy0Vbjy3KabOlzyCfzqc4Eqrd6HBR0CZA2N8Q8IoHsgXPxFcjifaZC1ZACD5b3zcUOPa7X3zHK8bzWJOp8IWcssiv8OdZBLehXIxMz9hKqFQicFPndveTYSRj7iZCpZAl6c6SguHAZDZD"
+            //this.facebookTestVideoId = "598993612743"
+        } else {
+            getLadderChallengeList().then((data) => {
+                console.log(data)
+
+                MainStore.challengeList = data
+            })
+            getLadderRungList().then((data) => {
+                console.log(data)
+
+                MainStore.rungList = data
+            })
+        }
     }
 
     handleResponse(data) {
@@ -37,7 +59,7 @@ require("./index.less")
         this.uploadSessionId = null
         this.uploadUrl = `https://graph-video.facebook.com/${this.groupId}/videos`
 
-        console.log("Start upload", videoFile.name)
+        console.log("Start upload", videoFile.name, videoFile.size)
 
         const startResp = await this.startUpload(videoFile.size)
         await this.transfer(videoFile, startResp.start_offset, startResp.end_offset)
@@ -45,7 +67,9 @@ require("./index.less")
 
         console.log("Finished upload", startResp, finishResp)
 
-        submitChallengeAttemptToAws("Gitis", startResp.video_id)
+        if (!this.facebookTest) {
+            submitChallengeAttemptToAws("Gitis", startResp.video_id)
+        }
     }
 
     async startUpload(fileSize) {
@@ -57,6 +81,11 @@ require("./index.less")
 
         const response = await this.request("post", this.uploadUrl, this.formData)
         this.uploadSessionId = response.upload_session_id
+
+        if (this.facebookTest) {
+            this.facebookTestVideoId = response.video_id
+            this.forceUpdate()
+        }
 
         return response
     }
@@ -98,6 +127,7 @@ require("./index.less")
         this.formData.append("upload_session_id", this.uploadSessionId)
         this.formData.append("title", title)
         this.formData.append("description", "Trying out the description Ryan Young")
+        this.formData.append("embeddable", true)
 
         const response = await this.request("post", this.uploadUrl, this.formData)
 
@@ -151,29 +181,52 @@ require("./index.less")
     }
 
     render() {
-        return (
-            <div>
+        if (this.facebookTest) {
+            return (
                 <div>
-                    <FacebookProvider appId="618459952333109">
-                        <LoginButton
-                            scope="email, publish_to_groups, publish_pages, publish_video, manage_pages, pages_show_list"
-                            onCompleted={(data) => this.handleResponse(data)}
-                            onError={(error) => this.handleError(error)}
-                        >
-                            <span>Login to Facebook</span>
-                        </LoginButton>
-                    </FacebookProvider>
-                    <button onClick={() => document.getElementById("file-input").click()}>Open</button>
-                    <input id="file-input" type="file" name="name" style={{ display: "none" }} />
-                    <button onClick={() => this.testUpload()}>
-                        Test Upload
-                    </button>
-                    <button onClick={() => this.getSubmits()}>Get Submit List</button>
-                    <button onClick={() => this.review()}>Review</button>
+                    <div style={{display: "flex", "flexDirection": "column"}}>
+                        <button onClick={() => document.getElementById("file-input").click()}>Open Video file to upload</button>
+                        <input id="file-input" type="file" name="name" style={{ display: "none" }} />
+                        <button onClick={() => this.testUpload()}>
+                            Test Upload to Facebook Group
+                        </button>
+                        <button onClick={() => {
+                            this.forceUpdate()
+                        }}>Refresh Video Embed</button>
+                        <div>
+                            {
+                                this.facebookTestVideoId === undefined ? "Upload video see embedded video here" :
+                                    <iframe referrerPolicy="unsafe-url" src={`https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2F598705540043%2Fvideos%2F${this.facebookTestVideoId}%2F&width=500&show_text=false&appId=141320579359343&height=280`} width="500" height="300" scrolling="no" frameBorder="0" allowtransparency="true" allow="encrypted-media" allowFullScreen={true}></iframe>
+                            }
+                        </div>
+                    </div>
                 </div>
-                <LadderView />
-            </div>
-        )
+            )
+        } else {
+            return (
+                <div>
+                    <div>
+                        <FacebookProvider appId="618459952333109">
+                            <LoginButton
+                                scope="email, publish_to_groups, publish_pages, publish_video, manage_pages, pages_show_list, user_videos, user_posts"
+                                onCompleted={(data) => this.handleResponse(data)}
+                                onError={(error) => this.handleError(error)}
+                            >
+                                <span>Login to Facebook</span>
+                            </LoginButton>
+                        </FacebookProvider>
+                        <button onClick={() => document.getElementById("file-input").click()}>Open</button>
+                        <input id="file-input" type="file" name="name" style={{ display: "none" }} />
+                        <button onClick={() => this.testUpload()}>
+                            Test Upload
+                        </button>
+                        <button onClick={() => this.getSubmits()}>Get Submit List</button>
+                        <button onClick={() => this.review()}>Review</button>
+                    </div>
+                    <LadderView />
+                </div>
+            )
+        }
     }
 }
 
@@ -234,7 +287,7 @@ function reviewChallengeAttemptToAws(challengeUserId, challengeTime, isPass) {
     })
 }
 
-function getLadderMoveList() {
+function getLadderChallengeList() {
     return fetch("https://spreadsheets.google.com/feeds/cells/1Dq5id1egKWG5pnGj5Dqf4lZZ53b0ndDj-DMP13ktGyQ/1/public/full?alt=json")
         .then((response) => {
             return response.json()
@@ -269,5 +322,49 @@ function getLadderMoveList() {
             }
 
             return moveListData
+        })
+}
+
+function getLadderRungList() {
+    return fetch("https://spreadsheets.google.com/feeds/cells/1Ib_BoyzARSZT5gEwRMcDFGMUqKZfLxu7DDsSA6OYr1g/1/public/full?alt=json")
+        .then((response) => {
+            return response.json()
+        }).then((data) => {
+            let rungListData = {}
+            let dataRowId = undefined
+            let rungId = undefined
+            let rungData = undefined
+            let keyNames = {}
+            for (let cellData of data.feed.entry) {
+                let rowId = cellData.gs$cell.row
+                let columnId = cellData.gs$cell.col
+                let content = cellData.content.$t
+
+                if (rowId === "1") {
+                    keyNames[columnId] = content
+                }else if (rowId !== dataRowId) {
+                    if (rungId !== undefined) {
+                        rungListData[rungId] = rungData
+                    }
+
+                    dataRowId = rowId
+                    rungId = content
+                    rungData = {}
+                } else {
+                    let dataType = keyNames[columnId]
+                    if (dataType.startsWith("Challenge")) {
+                        rungData.challengeIds = rungData.challengeIds || []
+                        rungData.challengeIds.push(content)
+                    } else {
+                        rungData[dataType] = content
+                    }
+                }
+            }
+
+            if (rungId !== undefined) {
+                rungListData[rungId] = rungData
+            }
+
+            return rungListData
         })
 }
