@@ -8,5 +8,6 @@ module.exports = Mobx.observable({
     challengeList: undefined,
     rungList: undefined,
     showChallengeView: false,
-    currentChallengeId: undefined
+    currentChallengeId: undefined,
+    accessToken: undefined
 })

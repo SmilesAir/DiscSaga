@@ -3,10 +3,11 @@
 const React = require("react")
 const ReactDOM = require("react-dom")
 const MobxReact = require("mobx-react")
-import { FacebookProvider, LoginButton } from "react-facebook"
 const LadderView = require("./ladderView.js")
+const LoginView = require("./loginView.js")
 
 const MainStore = require("./mainStore.js")
+const CommonActions = require("./commonActions.js")
 
 require("./index.less")
 
@@ -35,20 +36,6 @@ require("./index.less")
                 MainStore.rungList = data
             })
         }
-    }
-
-    handleResponse(data) {
-        console.log(data)
-
-        this.token = data.tokenDetail.accessToken
-
-        getUserDataFromAws()
-
-        getChallengeAttemptsFromAws()
-    }
-
-    handleError(error) {
-        this.setState({ error: error })
     }
 
     async testUpload() {
@@ -165,7 +152,7 @@ require("./index.less")
     }
 
     async getSubmits() {
-        let attemptsData = await getChallengeAttemptsFromAws()
+        let attemptsData = await CommonActions.getChallengeAttemptsFromAws()
         console.log("Attemp data: ", attemptsData)
 
         if (attemptsData.submitData.length > 0) {
@@ -206,15 +193,6 @@ require("./index.less")
             return (
                 <div>
                     <div>
-                        <FacebookProvider appId="618459952333109">
-                            <LoginButton
-                                scope="email, publish_to_groups, publish_pages, publish_video, manage_pages, pages_show_list, user_videos, user_posts"
-                                onCompleted={(data) => this.handleResponse(data)}
-                                onError={(error) => this.handleError(error)}
-                            >
-                                <span>Login to Facebook</span>
-                            </LoginButton>
-                        </FacebookProvider>
                         <button onClick={() => document.getElementById("file-input").click()}>Open</button>
                         <input id="file-input" type="file" name="name" style={{ display: "none" }} />
                         <button onClick={() => this.testUpload()}>
@@ -224,6 +202,7 @@ require("./index.less")
                         <button onClick={() => this.review()}>Review</button>
                     </div>
                     <LadderView />
+                    <LoginView />
                 </div>
             )
         }
@@ -235,18 +214,6 @@ ReactDOM.render(
     document.getElementById("mount")
 )
 
-function getUserDataFromAws() {
-    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/getUserData`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        }
-    }).then((response) => {
-        return response.json()
-    }). then((data) => {
-        console.log("reponse from aws", data)
-    })
-}
 
 function submitChallengeAttemptToAws(challengeId, videoId) {
     return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/challengeId/${challengeId}/videoId/${videoId}/submitChallengeAttempt`, {
@@ -258,19 +225,6 @@ function submitChallengeAttemptToAws(challengeId, videoId) {
         return response.json()
     }). then((data) => {
         console.log("reponse from aws", data)
-    })
-}
-
-function getChallengeAttemptsFromAws() {
-    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/getChallengeAttempts`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        }
-    }).then((response) => {
-        return response.json()
-    }). then((data) => {
-        return data
     })
 }
 
