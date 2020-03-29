@@ -20,7 +20,24 @@ module.exports.handler = (e, c, cb) => { Common.handler(e, c, cb, async (event, 
         throw new Error("Invalid challenge id")
     }
 
+    let spin = event.pathParameters.spin
+    if (spin === undefined || spin === "") {
+        throw new Error("Invalid spin")
+    }
+
+    let profileData = await Common.getProfileData(userId)
+    if (profileData === undefined || Common.isItemEmpty(profileData)) {
+        throw new Error(`Can't find profile data for ${userId}`)
+    }
+
+    console.log(profileData)
+
     // Todo: Check for enough energy
+
+    let rungNumber = Common.getRungNumberForChallengeId(challengeId)
+    if (rungNumber > profileData.currentRung + 5) {
+        throw new Error(`Trying to submit challenge more than 5 rungs ahead. At: ${profileData.currentRung}, submitted: ${rungNumber}`)
+    }
 
     let now = Date.now()
     let submitParams = {
@@ -29,23 +46,11 @@ module.exports.handler = (e, c, cb) => { Common.handler(e, c, cb, async (event, 
             time: now,
             userId: userId,
             challengeId: challengeId,
-            videoId: videoId
+            videoId: videoId,
+            spin: spin
         }
     }
     await docClient.put(submitParams).promise().then(() => {
-        let getProfileParams = {
-            TableName: process.env.USER_PROFILE_TABLE,
-            Key: {
-                userId: userId
-            }
-        }
-        return docClient.get(getProfileParams).promise()
-    }).then((profileData) => {
-        if (profileData === undefined || Common.isItemEmpty(profileData)) {
-            throw new Error(`Can't find profile data for ${userId}`)
-        }
-
-        profileData = profileData.Item
         profileData.pendingSubmitKeys.push(now)
 
         let updateProfileParams = {

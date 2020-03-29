@@ -50,7 +50,7 @@ functions:
     handler: source/submitChallengeAttempt.handler
     events:
       - http:
-          path: fbUserId/{fbUserId}/challengeId/{challengeId}/videoId/{videoId}/submitChallengeAttempt
+          path: fbUserId/{fbUserId}/challengeId/{challengeId}/spin/{spin}/videoId/{videoId}/submitChallengeAttempt
           method: post
           cors: true
   getChallengeAttempts:

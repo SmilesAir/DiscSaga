@@ -36,14 +36,37 @@ module.exports.handler = (e, c, cb) => { Common.handler(e, c, cb, async (event, 
     }
     await docClient.get(getSubmitParams).promise().then((submitData) => {
         if (Common.isItemEmpty(submitData)) {
-            console.log("Can't find submit data")
+            throw new Error("Can't find submit data")
         } else {
+            let getChallengeParams ={
+                TableName: process.env.CHALLENGE_RESULTS_TABLE,
+                Key: {
+                    userId: challengeUserId,
+                    challengeId: submitData.Item.challengeId
+                }
+            }
+            let prevChallengeData = await docClient.get(getChallengeParams).promise().then((data) => {
+                return data.Item
+            }).catch((error) => {
+                throw new Error(`Error getting previous challenge data for ${submitData.Item.challengeId}`)
+            })
+
+            let result = prevChallengeData && prevChallengeData.result || "none"
+            if (isPass === "true") {
+                if ((result === "clock" && submitData.Item.spin === "counter") ||
+                    (result === "counter" && submitData.Item.spin === "clock")) {
+                    result = "both"
+                } else if (result === "none") {
+                    result = submitData.Item.spin
+                }
+            }
+
             let putParams = {
                 TableName: process.env.CHALLENGE_RESULTS_TABLE,
                 Item: {
                     userId: challengeUserId,
                     challengeId: submitData.Item.challengeId,
-                    result: isPass === "true",
+                    result: result,
                     reviewedAt: Date.now(),
                     reviewer: userId
                 }

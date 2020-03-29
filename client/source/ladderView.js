@@ -3,6 +3,7 @@
 const React = require("react")
 const MobxReact = require("mobx-react")
 const MainStore = require("./mainStore.js")
+const VideoActions = require("./videoActions.js")
 
 require("./ladderView.less")
 
@@ -52,7 +53,7 @@ module.exports = @MobxReact.observer class LadderView extends React.Component {
 
     render() {
         let offsetY = -MainStore.scrollY % rungHeight
-        let rungNum = Math.floor(MainStore.scrollY / rungHeight) - 1
+        let rungNum = Math.floor(MainStore.scrollY / rungHeight)
 
         return (
             <div className="ladderView" ref={(element) => this.ladderViewRef = element}
@@ -102,20 +103,23 @@ module.exports = @MobxReact.observer class LadderView extends React.Component {
         super()
     }
 
-    showChallenge(challengeId) {
+    showChallenge(rungNumber, challengeId) {
         MainStore.showChallengeView = true
-        MainStore.currentChallengeId = challengeId
+        MainStore.currentViewChallengeId = challengeId
+        MainStore.currentViewRungNumber = rungNumber
     }
 
     render() {
         let challengeElements = []
         if (MainStore.rungList !== undefined && MainStore.challengeList !== undefined) {
-            let rungData = MainStore.rungList[this.props.rungNumber + 1]
+            let rungData = MainStore.rungList[this.props.rungNumber]
             if (rungData !== undefined && rungData.challengeIds !== undefined) {
                 for (let challengeId of rungData.challengeIds) {
                     let challengeData = MainStore.challengeList[challengeId]
+                    let result = getChallengeResult(challengeId)
+                    let buttonClassName = `challengeButton ${result}`
                     challengeElements.push(
-                        <button key={challengeId} className="challengeButton" onClick={() => this.showChallenge(challengeId)}>
+                        <button key={challengeId} className={buttonClassName} onClick={() => this.showChallenge(this.props.rungNumber, challengeId)} disabled={MainStore.profileData === undefined || this.props.rungNumber > MainStore.profileData.currentRung + 4}>
                             {challengeData.Name}
                         </button>
                     )
@@ -150,7 +154,7 @@ module.exports = @MobxReact.observer class LadderView extends React.Component {
             return ""
         }
 
-        let rungData = MainStore.rungList[this.props.rungNumber]
+        let rungData = MainStore.rungList[this.props.rungNumber - 1]
         if (rungData === undefined) {
             return ""
         }
@@ -178,7 +182,7 @@ module.exports = @MobxReact.observer class LadderView extends React.Component {
 
     render() {
         let style = {
-            bottom: `${-MainStore.scrollY + 21 + window.innerHeight / 200 + rungHeight * MainStore.currentRung}%`
+            bottom: `${-MainStore.scrollY + 21 + window.innerHeight / 200 + rungHeight * (MainStore.profileData && MainStore.profileData.currentRung || 0)}%`
         }
 
         return (
@@ -196,35 +200,73 @@ module.exports = @MobxReact.observer class LadderView extends React.Component {
 
     onCancel() {
         MainStore.showChallengeView = false
-        MainStore.currentChallengeId = undefined
+        MainStore.currentViewChallengeId = undefined
+    }
+
+    onVideoInputChange() {
+        let videoFile = document.getElementById("video-file-input").files[0]
+
+        VideoActions.submitChallengeAttempt(videoFile,
+            MainStore.challengeList[MainStore.currentViewChallengeId].Name,
+            MainStore.challengeList[MainStore.currentViewChallengeId].Description,
+            MainStore.currentViewChallengeId,
+            this.submitSpin
+        )
+    }
+
+    onSubmit(spin) {
+        this.submitSpin = spin
+
+        document.getElementById("video-file-input").click()
     }
 
     render() {
-        if (MainStore.showChallengeView !== true || MainStore.challengeList === undefined || MainStore.currentChallengeId === undefined) {
+        if (MainStore.showChallengeView !== true || MainStore.challengeList === undefined || MainStore.currentViewChallengeId === undefined) {
             return null
         }
 
-        //let videoId = "598890723933"
-        let videoId = "598891332713" // not working
+        let videoId = "598890723933"
+        //let videoId = "598891332713" // not working
+        //let userId = FB.getUserID()
+        let userId = "598705540043"
+
+        let result = getChallengeResult(MainStore.currentViewChallengeId)
+        let completeClock = result === "both" || result === "clock"
+        let completeCounter = result === "both" || result === "counter"
 
         return (
             <div className="challengeView">
+                <input id="video-file-input" type="file" name="name" style={{ display: "none" }} onChange={() => this.onVideoInputChange()} />
                 <div className="info">
                     <div className="title">
-                        {MainStore.challengeList[MainStore.currentChallengeId].Name}
+                        {MainStore.challengeList[MainStore.currentViewChallengeId].Name}
                     </div>
                     <div className="description">
-                        {MainStore.challengeList[MainStore.currentChallengeId].Description}
+                        {MainStore.challengeList[MainStore.currentViewChallengeId].Description}
                     </div>
                     <div className="example">
-                        <iframe referrerPolicy="unsafe-url" src={`https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2F${FB.getUserID()}%2Fvideos%2F${videoId}%2F&width=500&show_text=false&appId=141320579359343&height=280`} width="100%" height="100%" scrolling="no" frameBorder="0" allowtransparency="true" allow="encrypted-media" allowFullScreen={true}></iframe>
+                        <iframe referrerPolicy="unsafe-url" src={`https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2F${userId}%2Fvideos%2F${videoId}%2F&width=500&show_text=false&appId=141320579359343&height=280`}
+                            className="video" scrolling="no" frameBorder="0" allowtransparency="true" allow="encrypted-media" allowFullScreen={true} />
                     </div>
                 </div>
                 <div className="buttons">
-                    <button className="submitButton" disabled={true}>Try Challenge</button>
+                    <div className="submitButtonContainer">
+                        <button className="submitButton" onClick={() => this.onSubmit("clock")} disabled={completeClock}>Clock</button>
+                        <button className="submitButton" onClick={() => this.onSubmit("counter")} disabled={completeCounter}>Counter</button>
+                    </div>
                     <button className="cancelButton" onClick={() => this.onCancel()}>Go Back</button>
                 </div>
             </div>
         )
     }
+}
+
+function getChallengeResult(challengeId) {
+    if (MainStore.profileChallengeData === undefined) {
+        return false
+    }
+
+    let challengeData = MainStore.profileChallengeData[challengeId]
+
+    return challengeData !== undefined && challengeData.result || "none"
 }

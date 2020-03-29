@@ -21,7 +21,8 @@ module.exports.handler = (e, c, cb) => { Common.handler(e, c, cb, async (event, 
             userId: userId,
             createdAt: Date.now(),
             lastAccessAt: Date.now(),
-            pendingSubmitKeys: []
+            pendingSubmitKeys: [],
+            currentRung: 0
         }
 
         let putProfileParams = {

@@ -15,13 +15,21 @@ module.exports = @MobxReact.observer class LoginView extends React.Component {
     }
 
     async onLoginResponse(data) {
-        console.log("FB Login:", data)
+        console.log("FB Logged In:", data)
 
-        await this.getUserDataFromAws()
+        let userDataResponse = await this.getUserDataFromAws()
+        MainStore.profileData = userDataResponse.profileData
+        MainStore.profileChallengeData = userDataResponse.challengeData
 
-        await CommonActions.getChallengeAttemptsFromAws()
+        let submittedAttemptsResponse = await CommonActions.getChallengeAttemptsFromAws()
+        MainStore.profileSubmittedAttemptsData = submittedAttemptsResponse.submitData
 
+        MainStore.facebookProfileId = data.profile.id
         MainStore.accessToken = data.tokenDetail.accessToken
+        MainStore.firstName = data.profile.first_name
+        MainStore.lastName = data.profile.last_name
+
+        console.log(MainStore.profileChallengeData)
     }
 
     onLoginError(error) {
@@ -37,7 +45,7 @@ module.exports = @MobxReact.observer class LoginView extends React.Component {
         }).then((response) => {
             return response.json()
         }). then((data) => {
-            console.log("reponse from aws", data)
+            return data
         })
     }
 

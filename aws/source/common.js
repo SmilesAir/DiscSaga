@@ -1,6 +1,7 @@
 
-const AWS = require('aws-sdk')
+const AWS = require("aws-sdk")
 let docClient = new AWS.DynamoDB.DocumentClient()
+const fetch = require("node-fetch")
 
 module.exports.handler = async function(event, context, callback, func) {
     try {
@@ -48,4 +49,62 @@ module.exports.getProfileData = function(userId) {
     }).catch((error) => {
         console.log(`Error getting profile for ${userId}. Error ${error}`)
     })
+}
+
+module.exports.getLadderRungList = async function() {
+    return await fetch("https://spreadsheets.google.com/feeds/cells/1Ib_BoyzARSZT5gEwRMcDFGMUqKZfLxu7DDsSA6OYr1g/1/public/full?alt=json")
+        .then((response) => {
+            return response.json()
+        }).then((data) => {
+            let rungListData = {}
+            let dataRowId = undefined
+            let rungId = undefined
+            let rungData = undefined
+            let keyNames = {}
+            for (let cellData of data.feed.entry) {
+                let rowId = cellData.gs$cell.row
+                let columnId = cellData.gs$cell.col
+                let content = cellData.content.$t
+
+                if (rowId === "1") {
+                    keyNames[columnId] = content
+                }else if (rowId !== dataRowId) {
+                    if (rungId !== undefined) {
+                        rungListData[rungId] = rungData
+                    }
+
+                    dataRowId = rowId
+                    rungId = content
+                    rungData = {}
+                } else {
+                    let dataType = keyNames[columnId]
+                    if (dataType.startsWith("Challenge")) {
+                        rungData.challengeIds = rungData.challengeIds || []
+                        rungData.challengeIds.push(content)
+                    } else {
+                        rungData[dataType] = content
+                    }
+                }
+            }
+
+            if (rungId !== undefined) {
+                rungListData[rungId] = rungData
+            }
+
+            return rungListData
+        })
+}
+
+module.exports.getRungNumberForChallengeId = function(challengeId) {
+    let rungList = module.exports.getLadderRungList()
+
+    for (let rungKey in rungList) {
+        if (rungList[rungKey].challengeIds.findIndex((id) => {
+            return id === challengeId
+        }) !== -1) {
+            return parseInt(rungKey, 10)
+        }
+    }
+
+    return 0
 }

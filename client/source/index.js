@@ -55,7 +55,7 @@ require("./index.less")
         console.log("Finished upload", startResp, finishResp)
 
         if (!this.facebookTest) {
-            submitChallengeAttemptToAws("Gitis", startResp.video_id)
+            submitChallengeAttemptToAws("Gitis", "clock", startResp.video_id)
         }
     }
 
@@ -215,8 +215,8 @@ ReactDOM.render(
 )
 
 
-function submitChallengeAttemptToAws(challengeId, videoId) {
-    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/challengeId/${challengeId}/videoId/${videoId}/submitChallengeAttempt`, {
+function submitChallengeAttemptToAws(challengeId, spin, videoId) {
+    return fetch(`https://8yifxwpw4c.execute-api.us-west-2.amazonaws.com/development/fbUserId/${FB.getUserID()}/challengeId/${challengeId}/spin/${spin}/videoId/${videoId}/submitChallengeAttempt`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
